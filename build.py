@@ -191,7 +191,7 @@ def layout(path, title, desc, body, *, og_image="/img/og-default.jpg", og_alt=No
   </div>
   <div class="wrap fine">
     <p>{E(SITE['disclosure'])}</p>
-    <p>{E(SITE['ai_disclosure'])}</p>
+    <p>{E(SITE['question_note'])}</p>
     <p>© {NOW.year} Champion Auto Finance.</p>
   </div>
 </footer>
@@ -330,6 +330,7 @@ def page_show(s, eps):
       <span class="eyebrow">A Lease End Live podcast · Hosted by Joe</span>
       <h1>{E(s['title'])}</h1>
       <p class="lead">{E(s['description'])}</p>
+      <p class="muted">A podcast from Champion Auto Finance: <a class="link" href="https://championautofinance.com/" data-track="cta_company_show">championautofinance.com</a></p>
       <div class="hero-cta">{play_btn(se[0], "Play latest") if se else ""}</div>
       <h4 class="sub-h">Follow the show</h4>
       {platform_links(s, "show_page")}
@@ -370,7 +371,7 @@ def page_episode(ep, eps):
     take = "".join(f"<li>{E(t)}</li>" for t in ep["takeaways"])
     chaps = "".join(f'<li><button class="ts" data-seek="{c["start"]}">{hms(c["start"])}</button> {E(c["title"])}</li>' for c in ep["chapters_resolved"])
     # One contextual link to championautofinance.com per episode, no more (no link-farm footprint).
-    guides = "".join(f'<li><a href="{E(u)}" data-track="guide_link">{E(n)}</a></li>' for n, u in ep["links"][:1])
+    guides = 1   # every episode links straight to the Champion Auto Finance website (no deep links)
     og = f"/img/og/{ep['show']}-{ep['slug']}.jpg"
     if not os.path.exists(os.path.join(ROOT, "src", og.lstrip("/"))): og = f"/img/{ep['show']}-og.jpg"
     body = f"""
@@ -413,14 +414,14 @@ def page_episode(ep, eps):
         <div class="c-new"></div>
         <div class="c-list"><p class="muted">Loading comments…</p></div>
       </section>
-      {f'<section class="guides"><h2>Related guide</h2><ul class="ticks">{guides}</ul></section>' if guides else ''}
-      <p class="fine-sm">{E(SITE['disclosure'])} {E(SITE['ai_disclosure'])}</p>
+      <section class="guides"><h2>Champion Auto Finance</h2><p>Thinking about buying out your lease? Learn more and get started at <a href="https://championautofinance.com/" data-track="cta_company_episode">championautofinance.com</a>.</p></section>
+      <p class="fine-sm">{E(SITE['disclosure'])}{(' ' + E(SITE['question_note'])) if ep['show'] == 'keys-or-keep' else ''}</p>
       <nav class="ep-navs" aria-label="More from this show">{nav}</nav>
     </div>
     <aside class="ep-side">
       <div class="side-card"><h4>Follow {E(s['title'])}</h4>{platform_links(s, "episode_page")}</div>
       <div class="side-card cta-card"><h4>Thinking about buying out your lease?</h4><p class="muted small">Champion Auto Finance helps arrange financing for drivers buying the car they already lease, nationwide.</p>
-        <a class="btn btn-live btn-block" href="{E(SITE['company']['quote_url'])}&utm_campaign={E(ep['show'])}&utm_content={E(ep['slug'])}" data-track="cta_quote_episode" rel="nofollow noopener">Get a buyout quote</a>
+        <a class="btn btn-live btn-block" href="https://championautofinance.com/" data-track="cta_company_episode_side">Visit championautofinance.com</a>
         <p class="fine-sm">Not a lender. Approvals and terms are subject to lender underwriting.</p></div>
       <div class="side-card"><h4>Have a question?</h4><p class="muted small">Joe may answer it on the show.</p><a class="link" href="/ask/">Ask Joe →</a></div>
     </aside>
@@ -468,10 +469,10 @@ def page_about():
   <ul class="ticks"><li><a href="/lease-end-minute/">The Lease End Minute</a>: one practical tip in about a minute.</li>
   <li><a href="/keys-or-keep/">Keys or Keep</a>: listener-style questions worked through step by step.</li></ul>
   <h2>How we make the show</h2>
-  <p>{E(SITE['ai_disclosure'])}</p>
+  <p>{E(SITE['production_note'])} {E(SITE['question_note'])}</p>
   <h2>About Champion Auto Finance</h2>
   <p>{E(SITE['disclosure'])}</p>
-  <p><a class="btn btn-live" href="{E(SITE['company']['quote_url'])}" data-track="cta_quote_about" rel="nofollow noopener">Get a lease buyout quote</a></p>
+  <p><a class="btn btn-live" href="https://championautofinance.com/" data-track="cta_company_about">Visit championautofinance.com</a></p>
 </section>"""
     ld = [{"@context": "https://schema.org", "@type": "ProfilePage", "url": BASE + "/about/", "mainEntity": person_ld()}, org_ld()]
     return layout("/about/", "About Joe, Managing Director at Champion Auto Finance", "Meet Joe, Managing Director at Champion Auto Finance and host of The Lease End Minute and Keys or Keep, podcasts about lease buyouts.",
@@ -523,7 +524,7 @@ def page_privacy():
   <h2>Children</h2>
   <p>This site is for adults. It is not directed to anyone under 18, and we do not knowingly collect information from children.</p>
   <h2>Your choices</h2>
-  <p>You can ask to see, correct or delete the information we hold about you by emailing info@championautofinance.com. Champion Auto Finance's full privacy policy: <a href="https://championautofinance.com/privacy-policy/" rel="noopener">championautofinance.com/privacy-policy</a>.</p>
+  <p>You can ask to see, correct or delete the information we hold about you by emailing info@championautofinance.com. Champion Auto Finance's full privacy policy: <a href="https://championautofinance.com/">championautofinance.com</a>.</p>
 </section>"""
     return layout("/privacy/", "Privacy", "How Lease End Live handles listening statistics, comments and listener questions.", body, crumbs=[("Privacy", "/privacy/")])
 
@@ -536,7 +537,7 @@ def page_terms():
   <h2>Information only, not advice</h2>
   <p>Episodes, transcripts and posts are general information about car leases and lease buyouts. They are not legal, tax or financial advice, and they are not an offer of credit. Your lease contract, your lender and your state's rules decide what applies to you. {E(SITE['disclosure'])}</p>
   <h2>How the show is made</h2>
-  <p>{E(SITE['ai_disclosure'])}</p>
+  <p>{E(SITE['production_note'])} {E(SITE['question_note'])}</p>
   <h2>Who can post</h2>
   <p>You must be 18 or older to create an account or post. Keep your sign-in link private; you are responsible for what is posted from your account.</p>
   <h2>Your posts</h2>
@@ -638,11 +639,12 @@ def feed(s, eps):
     items = ""
     for e in se:
         tk = "".join(f"<li>{X(t)}</li>" for t in e["takeaways"])
-        gd = "".join(f'<li><a href="{X(u)}">{X(n)}</a></li>' for n, u in e["links"][:1])
+        gd = ""
         notes = (f"<p>{X(e['summary'])}</p>" + (f"<p>Key takeaways:</p><ul>{tk}</ul>" if tk else "") + e.get("notes_html", "") +
                  (f"<p>Read more:</p><ul>{gd}</ul>" if gd else "") +
                  f'<p>Transcript: <a href="{BASE}{e["url"]}">{BASE}{e["url"]}</a></p>'
-                 f"<p>{X(SITE['disclosure'])}</p><p>{X(SITE['ai_disclosure'])}</p>")
+                 f'<p>Learn more about lease buyout financing at <a href="https://championautofinance.com/">championautofinance.com</a>.</p>'
+                 f"<p>{X(SITE['disclosure'])}</p>" + (f"<p>{X(SITE['question_note'])}</p>" if s['slug'] == 'keys-or-keep' else ""))
         items += f"""
   <item>
     <title>{X(e['title'])}</title>
@@ -673,13 +675,13 @@ def feed(s, eps):
   <atom:link href="{BASE}/feeds/{s['slug']}.xml" rel="self" type="application/rss+xml"/>
   <language>{SITE['language']}</language>
   <copyright>© {NOW.year} Champion Auto Finance</copyright>
-  <description><![CDATA[{s['description']} {SITE['disclosure']} {SITE['ai_disclosure']}]]></description>
+  <description><![CDATA[{s['description']} Learn more at https://championautofinance.com {SITE['disclosure']}{(' ' + SITE['question_note']) if s['slug'] == 'keys-or-keep' else ''}]]></description>
   <lastBuildDate>{format_datetime(NOW)}</lastBuildDate>
   <pubDate>{last}</pubDate>
   <image><url>{BASE}/img/{s['slug']}-cover-1400.jpg</url><title>{X(s['title'])}</title><link>{BASE}/{s['slug']}/</link></image>
   <itunes:author>Champion Auto Finance</itunes:author>
   <itunes:subtitle>{X(s['subtitle'])}</itunes:subtitle>
-  <itunes:summary>{X(s['description'])}</itunes:summary>
+  <itunes:summary>{X(s['description'])} Learn more at https://championautofinance.com</itunes:summary>
   <itunes:owner><itunes:name>{X(SITE['owner_name'])}</itunes:name><itunes:email>{X(SITE['owner_email'])}</itunes:email></itunes:owner>
   <itunes:image href="{BASE}/img/{s['slug']}-cover.jpg"/>
   {cats}

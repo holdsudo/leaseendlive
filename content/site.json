@@ -14,14 +14,13 @@
   },
   "company": {
     "name": "Champion Auto Finance",
-    "url": "https://championautofinance.com/?utm_source=leaseendlive&utm_medium=podcast_site",
-    "quote_url": "https://championautofinance.com/lease-buyout-quote/?utm_source=leaseendlive&utm_medium=podcast_site",
+    "url": "https://championautofinance.com/",
+    "quote_url": "https://championautofinance.com/",
     "phone": "(732) 618-2036",
     "phone_href": "tel:+17326182036"
   },
   "ask_endpoint": "https://championautofinance.com/caf-v7-assets/lead.php",
   "disclosure": "Champion Auto Finance is a NJ DOBI-licensed financing partner, not a lender, coordinating lease buyout financing for drivers nationwide. Approvals and terms are subject to lender underwriting. Nothing on this site or in these episodes is legal, tax or financial advice.",
-  "ai_disclosure": "Episodes are written with AI assistance, reviewed by the Champion Auto Finance team, and voiced with an AI model of Joe's voice. Listener questions are composites based on the kinds of questions people ask us; names and details are changed.",
   "shows": [
     {
       "slug": "lease-end-minute",
@@ -97,5 +96,7 @@
   },
   "indexnow_key": "5f3c9a1e7b2d4c68a0e1f7b39d2c4e81",
   "api": "https://leaseendlive-api.jmizrahi99.workers.dev",
-  "turnstile_sitekey": "0x4AAAAAAFU4mc-edKJNIYYk"
+  "turnstile_sitekey": "0x4AAAAAAFU4mc-edKJNIYYk",
+  "production_note": "The Lease End Minute and Keys or Keep are produced by Champion Auto Finance and hosted by Joe, Managing Director.",
+  "question_note": "Listener questions are composites based on the kinds of questions people ask us; names and details are changed."
 }
