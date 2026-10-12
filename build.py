@@ -621,6 +621,22 @@ def page_verify():
     return layout("/verify/", "Confirm your email", "Confirming your email for the Lease End Live community.", body, robots="noindex,nofollow")
 
 
+def page_admin():
+    """Moderation queue. Unlinked, noindex, not in the sitemap; the API enforces access (host session or MOD_KEY)."""
+    head = f"""<script defer src="/assets/admin.js?v={ASSET_V}"></script>
+<style>.adm-signin{{display:grid;gap:12px;max-width:420px}}.adm-signin input{{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:inherit}}
+.adm-bar{{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}}.adm-help{{color:var(--muted);font-size:.9rem}}
+.adm-card{{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:16px;margin:14px 0}}
+.adm-meta{{color:var(--muted);font-size:.85rem;margin-bottom:6px;overflow-wrap:anywhere}}.adm-meta b{{color:var(--text)}}
+.adm-tag{{display:inline-block;margin:0 4px;padding:1px 8px;border-radius:999px;background:var(--panel2);font-size:.75rem;text-transform:uppercase;letter-spacing:.06em}}
+.adm-warn{{background:#7a4b00;color:#fff}}.adm-bad{{background:#7a1010;color:#fff}}.adm-reason{{color:#ffb35c}}
+.adm-title,.adm-body{{width:100%;box-sizing:border-box;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--text);font:inherit}}
+.adm-actions{{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}}.adm-msg{{color:var(--muted);font-size:.9rem}}</style>"""
+    body = """<section class="wrap section narrow-wide"><span class="eyebrow">Lease End Live</span><h1>Moderation</h1>
+<div id="admin-app"><p class="muted">Loading…</p></div><noscript><p>This page needs JavaScript.</p></noscript></section>"""
+    return layout("/admin/", "Moderation", "Moderation.", body, robots="noindex,nofollow,noarchive", extra_head=head)
+
+
 def page_404():
     body = """<section class="wrap section narrow center"><h1>That page isn't here.</h1><p class="lead">It may have moved. The latest episodes are on the home page.</p><p><a class="btn btn-live" href="/">Go to the home page</a></p></section>"""
     return layout("/404.html", "Page not found", "Page not found", body, robots="noindex,follow")
@@ -720,7 +736,7 @@ def main():
         write(f"/{s['slug']}/", page_show(s, eps))
         write(f"/feeds/{s['slug']}.xml", feed(s, eps))
     write("/about/", page_about()); write("/ask/", page_ask()); write("/privacy/", page_privacy()); write("/terms/", page_terms())
-    write("/community/", page_community()); write("/community/rules/", page_rules()); write("/verify/", page_verify())
+    write("/community/", page_community()); write("/community/rules/", page_rules()); write("/verify/", page_verify()); write("/admin/", page_admin())
     for e in eps:
         write(f"/embed{e['url']}", page_embed(e))
         write(f"/oembed/{e['show']}/{e['slug']}.json", json.dumps({

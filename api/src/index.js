@@ -131,7 +131,13 @@ async function requireUser(env, req) {
 
 async function authStart(env, req, body) {
   const email = clean(body.email, 200).toLowerCase();
-  const name = clean(body.name, LIMITS.name).replace(/\s+/g, ' ');
+  let name = clean(body.name, LIMITS.name).replace(/\s+/g, ' ');
+  if (body.admin) {   // /admin/ sign-in: hosts only, keeps their display name; same reply either way
+    const hosts = (env.HOST_EMAILS || '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+    if (!hosts.includes(email)) { await verifyTurnstile(env, body.turnstile, req); return { ok: true }; }
+    const u = await env.DB.prepare('SELECT name FROM users WHERE email = ?').bind(email).first();
+    name = (u && u.name) || 'Joe';
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, 'Please enter a valid email address.');
   if (name.length < 2) throw new HttpError(400, 'Please enter a display name (at least 2 characters).');
   if (holdReason(name)) throw new HttpError(400, 'Please choose a different display name.');
@@ -321,10 +327,19 @@ async function deleteOwn(env, req, id) {
 }
 
 // ------------------------------------------------------------------ moderation
-async function modAction(env, id, action) {
+async function modAction(env, id, action, body) {
   const p = await env.DB.prepare('SELECT * FROM posts WHERE id = ?').bind(id).first();
   if (!p) throw new HttpError(404, 'Post not found.');
-  if (action === 'approve') {
+  if (action === 'redact') {   // moderator edits out private details, then the post goes live
+    const text = clean(body && body.body, LIMITS.body);
+    if (!text) throw new HttpError(400, 'The post cannot be empty.');
+    const title = p.kind === 'thread' ? clean(body && body.title, LIMITS.title) || p.title : p.title;
+    await env.DB.prepare('UPDATE posts SET body = ?, title = ? WHERE id = ?').bind(text, title, id).run();
+    action = p.status === 'removed' ? 'none' : 'approve';
+  }
+  if (action === 'none') {
+    // removed posts stay removed
+  } else if (action === 'approve') {
     await env.DB.prepare("UPDATE posts SET status = 'live', hold_reason = NULL WHERE id = ?").bind(id).run();
     await env.DB.prepare('DELETE FROM reports WHERE post_id = ?').bind(id).run();
     if (p.status === 'held' && p.kind === 'reply') await env.DB.prepare("UPDATE posts SET reply_count = reply_count + 1, last_activity = datetime('now') WHERE id = ?").bind(p.thread_id).run();
@@ -338,15 +353,19 @@ async function modAction(env, id, action) {
   } else throw new HttpError(400, 'Unknown action.');
   return { ok: true, id, action };
 }
-function requireMod(env, req) {
+async function requireMod(env, req) {
   const h = req.headers.get('Authorization') || '';
-  if (!env.MOD_KEY || h !== `Bearer ${env.MOD_KEY}`) throw new HttpError(401, 'Moderator key required.');
+  if (env.MOD_KEY && h === `Bearer ${env.MOD_KEY}`) return;
+  const u = await currentUser(env, req);
+  if (!u || u.banned || u.role !== 'host') throw new HttpError(401, 'Moderator sign-in required.');
 }
-async function modQueue(env) {
-  const rows = (await env.DB.prepare(`SELECT p.*, u.name AS author_name, u.email AS author_email,
+async function modQueue(env, url) {
+  const recent = url && url.searchParams.get('view') === 'recent';
+  const where = recent ? "p.status != 'removed'" : "p.status = 'held' OR p.id IN (SELECT post_id FROM reports)";
+  const rows = (await env.DB.prepare(`SELECT p.*, u.name AS author_name, u.email AS author_email, u.role AS author_role, u.banned AS author_banned,
       (SELECT COUNT(*) FROM reports r WHERE r.post_id = p.id) AS reports
     FROM posts p JOIN users u ON u.id = p.user_id
-    WHERE p.status = 'held' OR p.id IN (SELECT post_id FROM reports) ORDER BY p.created_at DESC LIMIT 200`).all()).results;
+    WHERE ${where} ORDER BY p.created_at DESC LIMIT ${recent ? 100 : 200}`).all()).results;
   return { queue: rows };
 }
 // Email links open a confirmation page; the action itself is a POST so link scanners can't trigger it.
@@ -354,7 +373,7 @@ async function modReviewPage(env, url, method, form) {
   const id = +url.searchParams.get('id'), sig = url.searchParams.get('sig') || '';
   if (sig !== (await hmac(env, `review:${id}`))) return new Response('Link not valid.', { status: 403 });
   let done = '';
-  if (method === 'POST') { const a = form.get('a'); await modAction(env, id, a); done = `<p style="color:#0a7d3e"><b>Done: ${esc(a)}.</b></p>`; }
+  if (method === 'POST') { const a = form.get('a'); await modAction(env, id, a, { body: form.get('body'), title: form.get('title') }); done = `<p style="color:#0a7d3e"><b>Done: ${esc(a)}.</b></p>`; }
   const p = await env.DB.prepare('SELECT p.*, u.name AS author_name, u.email AS author_email FROM posts p JOIN users u ON u.id = p.user_id WHERE p.id = ?').bind(id).first();
   if (!p) return new Response('Post not found.', { status: 404 });
   const btn = (a, label, color) => `<button name="a" value="${a}" style="background:${color};color:#fff;border:0;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer;margin-right:8px">${label}</button>`;
@@ -362,7 +381,12 @@ async function modReviewPage(env, url, method, form) {
 ${mailShell(`${done}<p>Status: <b>${esc(p.status)}</b>${p.hold_reason ? ` (${esc(p.hold_reason)})` : ''}</p>
 <p><b>${esc(p.author_name)}</b> &lt;${esc(p.author_email)}&gt; · ${esc(p.kind)}${p.episode_id ? ' on ' + esc(p.episode_id) : ''}</p>
 <blockquote style="border-left:3px solid #ccc;margin:0 0 16px;padding:8px 12px;white-space:pre-wrap">${p.title ? `<b>${esc(p.title)}</b><br>` : ''}${esc(p.body)}</blockquote>
-<form method="post">${btn('approve', 'Approve', '#0a7d3e')}${btn('remove', 'Remove', '#b42318')}${btn('ban', 'Remove + ban author', '#3b0a0a')}</form>`)}`;
+<form method="post">${btn('approve', 'Approve', '#0a7d3e')}${btn('remove', 'Remove', '#b42318')}${btn('ban', 'Remove + ban author', '#3b0a0a')}</form>
+<h3 style="margin:22px 0 6px">Redact &amp; approve</h3>
+<p style="color:#6b7891;font-size:13px;margin:0 0 8px">Delete the private details (account numbers, phone, address), then publish the edited post.</p>
+<form method="post">${p.kind === 'thread' ? `<input name="title" value="${esc(p.title || '')}" style="width:100%;box-sizing:border-box;padding:8px;margin-bottom:8px;font:inherit">` : ''}
+<textarea name="body" rows="8" style="width:100%;box-sizing:border-box;padding:8px;font:inherit">${esc(p.body)}</textarea>
+<p>${btn('redact', 'Save edits + approve', '#0a7d3e')}</p></form>`)}`;
   return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
 
@@ -390,8 +414,8 @@ export default {
       else if ((m = p.match(/^\/v1\/posts\/(\d+)$/)) && req.method === 'DELETE') out = await deleteOwn(env, req, +m[1]);
       else if (p === '/v1/community' && req.method === 'GET') out = await community(env, req, url);
       else if ((m = p.match(/^\/v1\/thread\/(\d+)$/)) && req.method === 'GET') out = await thread(env, req, +m[1]);
-      else if (p === '/v1/mod/queue') { requireMod(env, req); out = await modQueue(env); }
-      else if ((m = p.match(/^\/v1\/mod\/(\d+)\/(approve|remove|ban|pin|unpin)$/)) && req.method === 'POST') { requireMod(env, req); out = await modAction(env, +m[1], m[2]); }
+      else if (p === '/v1/mod/queue') { await requireMod(env, req); out = await modQueue(env, url); }
+      else if ((m = p.match(/^\/v1\/mod\/(\d+)\/(approve|remove|ban|pin|unpin|redact)$/)) && req.method === 'POST') { await requireMod(env, req); out = await modAction(env, +m[1], m[2], body); }
       else throw new HttpError(404, 'Not found.');
       return json(out, 200, h);
     } catch (e) {
