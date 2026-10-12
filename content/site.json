@@ -1,0 +1,95 @@
+{
+  "name": "Lease End Live",
+  "url": "https://leaseendlive.com",
+  "tagline": "Straight answers on lease buyouts from Joe, Managing Director at Champion Auto Finance.",
+  "language": "en-us",
+  "ga4_id": "",
+  "op3": true,
+  "owner_name": "Champion Auto Finance",
+  "owner_email": "info@championautofinance.com",
+  "host": {
+    "name": "Joe",
+    "title": "Managing Director, Champion Auto Finance",
+    "bio": "Joe is the managing director at Champion Auto Finance, which helps drivers across the country finance the purchase of the car they already lease. On Lease End Live he answers the questions people actually ask at the end of a lease, in plain English."
+  },
+  "company": {
+    "name": "Champion Auto Finance",
+    "url": "https://championautofinance.com/?utm_source=leaseendlive&utm_medium=podcast_site",
+    "quote_url": "https://championautofinance.com/lease-buyout-quote/?utm_source=leaseendlive&utm_medium=podcast_site",
+    "phone": "(732) 618-2036",
+    "phone_href": "tel:+17326182036"
+  },
+  "ask_endpoint": "https://championautofinance.com/caf-v7-assets/lead.php",
+  "disclosure": "Champion Auto Finance is a NJ DOBI-licensed financing partner, not a lender, coordinating lease buyout financing for drivers nationwide. Approvals and terms are subject to lender underwriting. Nothing on this site or in these episodes is legal, tax or financial advice.",
+  "ai_disclosure": "Episodes are written with AI assistance, reviewed by the Champion Auto Finance team, and voiced with an AI model of Joe's voice. Listener questions are composites based on the kinds of questions people ask us; names and details are changed.",
+  "shows": [
+    {
+      "slug": "lease-end-minute",
+      "title": "The Lease End Minute",
+      "subtitle": "One lease-end tip, in about a minute.",
+      "description": "The Lease End Minute is a quick, practical tip for anyone whose car lease is ending: payoff quotes, residual values, mileage, equity and the questions to ask before you hand back the keys. Hosted by Joe, Managing Director at Champion Auto Finance.",
+      "accent": "#ff3b3b",
+      "guid": "d64ac3c3-5e95-5fae-99db-40c825c57ed5",
+      "categories": [
+        [
+          "Business"
+        ],
+        [
+          "Leisure",
+          "Automotive"
+        ]
+      ],
+      "platforms": {},
+      "seo_title": "The Lease End Minute: 60-Second Lease Buyout Tips (Podcast)",
+      "keywords": [
+        "lease buyout tips",
+        "end of lease",
+        "lease payoff",
+        "lease equity",
+        "podcast"
+      ]
+    },
+    {
+      "slug": "keys-or-keep",
+      "title": "Keys or Keep",
+      "subtitle": "Lease buyout questions, answered.",
+      "description": "Keys or Keep takes real-world lease-end questions and works through the one decision that matters: hand back the keys, or keep the car. Each episode Joe, Managing Director at Champion Auto Finance, walks through the numbers, the process and the reasoning behind a lease buyout.",
+      "accent": "#3d8bff",
+      "guid": "ba4fb92f-6b13-5e14-8258-cf9b5c102ee2",
+      "categories": [
+        [
+          "Business"
+        ],
+        [
+          "Leisure",
+          "Automotive"
+        ]
+      ],
+      "platforms": {},
+      "seo_title": "Keys or Keep: Lease Buyout Questions Answered (Podcast)",
+      "keywords": [
+        "lease buyout questions",
+        "should I buy my leased car",
+        "lease buyout podcast",
+        "end of lease options"
+      ]
+    }
+  ],
+  "same_as": [
+    "https://championautofinance.com/",
+    "https://www.linkedin.com/company/championautofinance",
+    "https://www.youtube.com/@championautofinance",
+    "https://x.com/ChampFinanceNJ",
+    "https://championautofinance.medium.com/",
+    "https://www.quora.com/profile/Champion-Auto-Finance",
+    "https://www.instagram.com/championautofinancenj/"
+  ],
+  "twitter": "",
+  "verify": {
+    "google": "",
+    "bing": "",
+    "yandex": "",
+    "facebook": ""
+  },
+  "indexnow_key": "5f3c9a1e7b2d4c68a0e1f7b39d2c4e81"
+}

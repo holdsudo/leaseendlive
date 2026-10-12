@@ -1,0 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@500;600;700&display=swap');
+*{margin:0;box-sizing:border-box}
+html,body{width:var(--W);height:var(--H);overflow:hidden}
+body{font-family:Inter,sans-serif;color:#fff;position:relative}
+.brand{display:flex;align-items:center;gap:14px;font:700 34px/1 'Bricolage Grotesque';letter-spacing:-.01em}
+.brand b{color:#ff5b3a}
+.dot{width:20px;height:20px;border-radius:50%;background:#ff5b3a;box-shadow:0 0 0 8px rgba(255,91,58,.25)}
