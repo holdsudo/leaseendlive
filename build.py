@@ -123,6 +123,10 @@ def layout(path, title, desc, body, *, og_image="/img/og-default.jpg", og_alt=No
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="{E(og_alt or title)}">
+<link rel="image_src" href="{BASE}{og_image}">
+<meta itemprop="name" content="{E(title)}">
+<meta itemprop="description" content="{E(desc)}">
+<meta itemprop="image" content="{BASE}{og_image}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{E(title)}">
 <meta name="twitter:description" content="{E(desc)}">
