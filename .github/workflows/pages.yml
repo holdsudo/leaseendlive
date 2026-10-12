@@ -38,8 +38,10 @@ jobs:
     # Tell Bing, Yandex, Seznam, Naver (IndexNow) about every URL after each deploy.
     needs: deploy
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+      - run: python3 build.py
       - name: Ping IndexNow
         run: |
           python3 - <<'PY'
@@ -47,7 +49,7 @@ jobs:
           site = json.load(open("content/site.json")); key = site.get("indexnow_key"); base = site["url"].rstrip("/")
           if not key: raise SystemExit("no key")
           time.sleep(60)  # give Pages a minute to serve the new build
-          xml = urllib.request.urlopen(base + "/sitemap.xml", timeout=30).read().decode()
+          xml = open("dist/sitemap.xml").read()
           urls = re.findall(r"<loc>([^<]+)</loc>", xml)
           body = json.dumps({"host": base.split("://")[1], "key": key, "keyLocation": f"{base}/{key}.txt", "urlList": urls}).encode()
           req = urllib.request.Request("https://api.indexnow.org/indexnow", data=body, headers={"Content-Type": "application/json; charset=utf-8"})
