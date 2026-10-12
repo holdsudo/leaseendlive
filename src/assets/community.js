@@ -275,10 +275,12 @@
         listEl.innerHTML = '';
         if (!r.threads.length) listEl.appendChild(el('p', 'muted c-empty', state.flair ? 'No posts with this flair yet.' : 'No posts yet. Be the first to ask a question.'));
         r.threads.forEach(function (t) {
-          var row = el('a', 'c-thread' + (t.held ? ' held' : '')); row.href = '/community/?t=' + t.id;
+          var row = el('a', 'c-thread' + (t.held ? ' held' : '') + (t.pinned ? ' pinned' : '')); row.href = '/community/?t=' + t.id;
           var sc = el('div', 'c-score'); sc.appendChild(el('b', null, String(t.score))); sc.appendChild(el('span', null, 'votes')); row.appendChild(sc);
           var main = el('div', 'c-thread-main');
-          var meta = el('div', 'c-meta'); meta.appendChild(el('span', 'c-flair', t.flair));
+          var meta = el('div', 'c-meta');
+          if (t.pinned) meta.appendChild(el('span', 'c-flair pin', '\ud83d\udccc Pinned'));
+          meta.appendChild(el('span', 'c-flair', t.flair));
           meta.appendChild(el('span', null, t.author.name + (t.author.host ? ' (Host)' : '') + ' · ' + ago(t.created_at)));
           if (t.held) meta.appendChild(el('span', 'c-flair warn', 'In review'));
           main.appendChild(meta); main.appendChild(el('h3', null, t.title));
@@ -301,6 +303,7 @@
         document.title = r.thread.title + ' | Lease End Live Community';
         var t = postNode(r.thread, { showTitle: true }); t.classList.add('c-op');
         t.insertBefore(el('span', 'c-flair', r.thread.flair), t.firstChild);
+        if (r.thread.pinned) t.insertBefore(el('span', 'c-flair pin', '\ud83d\udccc Pinned'), t.firstChild);
         host.appendChild(t);
         host.appendChild(el('h2', 'c-h', r.replies.length === 1 ? '1 reply' : r.replies.length + ' replies'));
         if (!r.thread.held) host.appendChild(composer('Add a reply…', false, null, function (v) {

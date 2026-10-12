@@ -345,3 +345,6 @@ p{margin:0 0 1em}
 .c-auth input{width:100%;font:inherit;color:var(--text);background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .c-ts{min-height:65px}
 .c-sent{margin:6px 0;line-height:1.6}
+
+.c-flair.pin{background:color-mix(in srgb,var(--live) 22%,transparent);color:#ffd0d0;margin-right:6px}
+.c-thread.pinned{border-color:color-mix(in srgb,var(--live) 45%,transparent);background:radial-gradient(500px 120px at 0 0,rgba(233,1,2,.12),transparent 70%),var(--panel)}

@@ -172,7 +172,7 @@ async function authVerify(env, body) {
 function shapePost(p, me, myVotes) {
   return { id: p.id, kind: p.kind, episode_id: p.episode_id, thread_id: p.thread_id, parent_id: p.parent_id,
     title: p.title, body: p.status === 'removed' ? '' : p.body, flair: p.flair, status: p.status,
-    held: p.status === 'held', removed: p.status === 'removed', score: p.score, reply_count: p.reply_count,
+    held: p.status === 'held', pinned: !!p.pinned, removed: p.status === 'removed', score: p.score, reply_count: p.reply_count,
     created_at: p.created_at + 'Z', author: { id: p.user_id, name: p.status === 'removed' ? '[removed]' : p.author_name, host: p.author_role === 'host' },
     mine: !!(me && me.id === p.user_id), voted: !!(myVotes && myVotes.has(p.id)) };
 }
@@ -210,6 +210,7 @@ async function community(env, req, url) {
   const order = sort === 'top' ? 'ORDER BY p.score DESC, p.created_at DESC' : 'ORDER BY p.created_at DESC';
   let rows = await visible(env, where, flair ? [flair] : [], me, order + ' LIMIT 200');
   if (sort === 'hot') rows.sort((a, b) => hot(b) - hot(a));
+  rows.sort((a, b) => (b.pinned || 0) - (a.pinned || 0));   // pinned posts always on top (stable sort keeps the rest in order)
   rows = rows.slice(0, 60);
   const mv = await votesFor(env, me, rows.map((r) => r.id));
   const members = (await env.DB.prepare('SELECT COUNT(*) AS n FROM users WHERE verified_at IS NOT NULL AND banned = 0').first()).n;
@@ -332,6 +333,8 @@ async function modAction(env, id, action) {
   } else if (action === 'ban') {
     await env.DB.prepare("UPDATE posts SET status = 'removed', hold_reason = 'removed by moderator' WHERE user_id = ? AND status != 'removed'").bind(p.user_id).run();
     await env.DB.prepare('UPDATE users SET banned = 1 WHERE id = ?').bind(p.user_id).run();
+  } else if (action === 'pin' || action === 'unpin') {
+    await env.DB.prepare('UPDATE posts SET pinned = ? WHERE id = ?').bind(action === 'pin' ? 1 : 0, id).run();
   } else throw new HttpError(400, 'Unknown action.');
   return { ok: true, id, action };
 }
@@ -388,7 +391,7 @@ export default {
       else if (p === '/v1/community' && req.method === 'GET') out = await community(env, req, url);
       else if ((m = p.match(/^\/v1\/thread\/(\d+)$/)) && req.method === 'GET') out = await thread(env, req, +m[1]);
       else if (p === '/v1/mod/queue') { requireMod(env, req); out = await modQueue(env); }
-      else if ((m = p.match(/^\/v1\/mod\/(\d+)\/(approve|remove|ban)$/)) && req.method === 'POST') { requireMod(env, req); out = await modAction(env, +m[1], m[2]); }
+      else if ((m = p.match(/^\/v1\/mod\/(\d+)\/(approve|remove|ban|pin|unpin)$/)) && req.method === 'POST') { requireMod(env, req); out = await modAction(env, +m[1], m[2]); }
       else throw new HttpError(404, 'Not found.');
       return json(out, 200, h);
     } catch (e) {
