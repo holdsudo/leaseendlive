@@ -186,7 +186,7 @@ def layout(path, title, desc, body, *, og_image="/img/og-default.jpg", og_alt=No
     <div>
       <h4>Contact</h4>
       <a href="{E(SITE['company']['phone_href'])}" data-track="cta_call">{E(SITE['company']['phone'])}</a>
-      <a href="/ask/">Ask Joe a question</a><a href="/privacy/">Privacy</a>
+      <a href="/ask/">Ask Joe a question</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a>
     </div>
   </div>
   <div class="wrap fine">
@@ -496,7 +496,7 @@ def page_ask():
     </div>
     <label>Your question<textarea name="question" rows="6" required placeholder="My lease ends in March and..."></textarea></label>
     <label class="hp" aria-hidden="true">Company website<input name="company_website" tabindex="-1" autocomplete="off"></label>
-    <p class="fine-sm">If we use your question on air we will use your first name and city only, and may shorten or edit it. Please don't include account numbers or other sensitive details. Your question goes to Champion Auto Finance (info@championautofinance.com); see our <a href="/privacy/">privacy note</a>.</p>
+    <p class="fine-sm">If we use your question on air we will use your first name and city only, and may shorten or edit it. Please don't include account numbers or other sensitive details. Your question goes to Champion Auto Finance (info@championautofinance.com) along with basic technical details such as your IP address; see our <a href="/privacy/">privacy note</a>.</p>
     <button class="btn btn-live" type="submit">Send my question</button>
     <p class="ask-status" role="status" aria-live="polite"></p>
   </form>
@@ -509,18 +509,48 @@ def page_privacy():
     body = f"""
 <section class="wrap section narrow prose">
   <h1>Privacy</h1>
-  <p>Lease End Live is run by Champion Auto Finance.</p>
+  <p>Lease End Live is run by Champion Auto Finance. This page explains what this site collects and why. Last updated: October 12, 2026.</p>
   <h2>Listening statistics</h2>
-  <p>We use Google Analytics to understand how the site is used: which pages are viewed, which episodes are played, and roughly how long people listen. Episode audio is delivered through <a href="https://op3.dev" rel="noopener">OP3</a>, an open podcast statistics service that counts downloads without selling or sharing listener data. We do not use advertising trackers.</p>
+  <p>Episode audio is delivered through <a href="https://op3.dev" rel="noopener">OP3</a>, an open podcast statistics service that counts downloads without selling or sharing listener data. We may add Google Analytics to count page views and how much of each episode is played; if we do, this page will say so before it is turned on. We do not use advertising trackers on this site.</p>
+  <h2>Hosting</h2>
+  <p>The site is hosted on GitHub Pages, and the comments and community run on Cloudflare. Like any web host, they process your IP address and basic browser details to deliver pages and protect against abuse.</p>
   <h2>Comments, likes and the community</h2>
-  <p>To comment or post you confirm an email address once. We store your display name, your email (used only to send sign-in links and never shown publicly), your posts and your votes. Episode likes don't need an account: your browser keeps a random ID so one device counts once. To stop abuse we keep a short-lived, scrambled version of your IP address that changes daily; we never store the IP itself. Bot protection is provided by Cloudflare Turnstile. You can delete your own posts at any time, and you can ask us to delete your account at info@championautofinance.com.</p>
+  <p>To comment or post you confirm an email address once. We store your display name, your email (used only to send sign-in links and never shown publicly), your posts and your votes. Sign-in emails are sent through our email provider, Resend. Episode likes don't need an account: your browser keeps a random ID so one device counts once. To stop abuse we keep a scrambled version of your IP address that cannot be turned back into the address. Bot protection is provided by Cloudflare Turnstile. Your posts stay up until you or a moderator remove them. You can delete your own posts at any time, and you can ask us to delete your account and posts at info@championautofinance.com.</p>
   <h2>Your preferences</h2>
   <p>Your browser remembers where you stopped in each episode and your playback speed so you can pick up where you left off. That stays on your device.</p>
   <h2>Questions you send</h2>
-  <p>Questions sent through <a href="/ask/">Ask Joe</a> go by email to Champion Auto Finance. We use them to answer you and, if we feature your question, we use only your first name and city.</p>
-  <p>Champion Auto Finance's full privacy policy: <a href="https://championautofinance.com/privacy-policy/" rel="noopener">championautofinance.com/privacy-policy</a>. Contact: info@championautofinance.com.</p>
+  <p>Questions sent through <a href="/ask/">Ask Joe</a> go to Champion Auto Finance by email and are kept in our records. Along with what you type, we receive technical details about the submission: the time, your IP address, an approximate location looked up from that IP address, and your device and browser type. We use these to answer you and to filter spam. If we feature your question, we use only your first name and city. We do not sell your information.</p>
+  <h2>Children</h2>
+  <p>This site is for adults. It is not directed to anyone under 18, and we do not knowingly collect information from children.</p>
+  <h2>Your choices</h2>
+  <p>You can ask to see, correct or delete the information we hold about you by emailing info@championautofinance.com. Champion Auto Finance's full privacy policy: <a href="https://championautofinance.com/privacy-policy/" rel="noopener">championautofinance.com/privacy-policy</a>.</p>
 </section>"""
-    return layout("/privacy/", "Privacy", "How Lease End Live handles analytics and listener questions.", body, crumbs=[("Privacy", "/privacy/")])
+    return layout("/privacy/", "Privacy", "How Lease End Live handles listening statistics, comments and listener questions.", body, crumbs=[("Privacy", "/privacy/")])
+
+
+def page_terms():
+    body = f"""
+<section class="wrap section narrow prose">
+  <h1>Terms of use</h1>
+  <p>Lease End Live is run by Champion Auto Finance. By using this site, the podcasts or the community, you agree to these terms. Last updated: October 12, 2026.</p>
+  <h2>Information only, not advice</h2>
+  <p>Episodes, transcripts and posts are general information about car leases and lease buyouts. They are not legal, tax or financial advice, and they are not an offer of credit. Your lease contract, your lender and your state's rules decide what applies to you. {E(SITE['disclosure'])}</p>
+  <h2>How the show is made</h2>
+  <p>{E(SITE['ai_disclosure'])}</p>
+  <h2>Who can post</h2>
+  <p>You must be 18 or older to create an account or post. Keep your sign-in link private; you are responsible for what is posted from your account.</p>
+  <h2>Your posts</h2>
+  <p>You keep ownership of what you post. By posting, you give Champion Auto Finance permission to display, store and share it on this site and in our shows, for example by reading a comment on air with your display name. Posts must follow the <a href="/community/rules/">community rules</a>. Posts reflect the views of the people who write them, not Champion Auto Finance.</p>
+  <h2>Moderation</h2>
+  <p>We may hold, edit for privacy, remove or decline any post, and suspend accounts that break these terms or the community rules. To report a post, use the report button or email info@championautofinance.com.</p>
+  <h2>Our content</h2>
+  <p>The episodes, artwork, transcripts and site design belong to Champion Auto Finance. You may share links and use our embed player; please don't re-upload or sell our episodes.</p>
+  <h2>No warranty</h2>
+  <p>The site and shows are provided as they are. We work to keep them accurate and current, but rates, rules and lender policies change, and we can't promise every detail is correct for your situation. To the extent the law allows, Champion Auto Finance is not liable for decisions made based on this content.</p>
+  <h2>Changes and contact</h2>
+  <p>We may update these terms; the date above shows the latest version. These terms are governed by New Jersey law. Questions: info@championautofinance.com, {E(SITE['company']['phone'])}. See also our <a href="/privacy/">privacy page</a>.</p>
+</section>"""
+    return layout("/terms/", "Terms of Use", "Terms of use for Lease End Live, the podcast site and community from Champion Auto Finance.", body, crumbs=[("Terms", "/terms/")])
 
 
 def page_embed(ep):
@@ -575,7 +605,7 @@ def page_rules():
     <li><b>It's not professional advice.</b> Posts are other people's opinions and experiences, not legal, tax or financial advice. Your contract and your state's rules decide what applies to you.</li>
   </ol>
   <h2>How moderation works</h2>
-  <p>You confirm your email once before your first post; your email is never shown. Posts go live right away unless they contain links, contact details, long numbers or flagged language, in which case a moderator reviews them first. Anyone can report a post; posts reported by several readers are hidden until reviewed. We may remove posts or block accounts that break these rules.</p>
+  <p>You confirm your email once before your first post; your email is never shown. Posts go live right away unless they contain links, contact details, long numbers or flagged language, in which case a moderator reviews them first. Anyone can report a post; posts reported by several readers are hidden until reviewed. We may remove posts or block accounts that break these rules. You must be 18 or older to post, and posting means you agree to our <a href="/terms/">terms of use</a>.</p>
   <h2>About us</h2>
   <p>The community is run by Champion Auto Finance. Posts by Joe or the Champion team are marked <b>Host</b>. {E(SITE['disclosure'])}</p>
   <p><a class="btn btn-live" href="/community/">Go to the community</a></p>
@@ -687,7 +717,7 @@ def main():
     for s in SITE["shows"]:
         write(f"/{s['slug']}/", page_show(s, eps))
         write(f"/feeds/{s['slug']}.xml", feed(s, eps))
-    write("/about/", page_about()); write("/ask/", page_ask()); write("/privacy/", page_privacy())
+    write("/about/", page_about()); write("/ask/", page_ask()); write("/privacy/", page_privacy()); write("/terms/", page_terms())
     write("/community/", page_community()); write("/community/rules/", page_rules()); write("/verify/", page_verify())
     for e in eps:
         write(f"/embed{e['url']}", page_embed(e))
