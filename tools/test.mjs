@@ -49,9 +49,9 @@ async function run(viewport, tag) {
   await page.mouse.click(box.x + box.width * 0.5, box.y + box.height / 2);
   await page.waitForTimeout(1500);
   const st3 = await page.evaluate(() => { const a = document.getElementById('lel-audio'); const art = document.querySelector('[data-episode]');
-    return { id: art.dataset.episode, src: a.src, t: a.currentTime, d: a.duration, on: !!document.querySelector('.tr-body p.on'), segs: document.querySelectorAll('.tr-body p[data-start]').length }; });
+    return { id: art.dataset.episode, src: a.src, t: a.currentTime, d: a.duration, on: !!document.querySelector('.tr-body .w.now, .tr-body p.on'), segs: document.querySelectorAll('.tr-body p[data-start]').length }; });
   ok(st3.src.includes(st3.id.split('/')[1]) && Math.abs(st3.t / st3.d - 0.5) < 0.12, `${tag}: waveform click plays this episode near 50% (${(st3.t / st3.d * 100).toFixed(0)}%)`);
-  if (st3.segs) ok(st3.on, `${tag}: transcript paragraph highlighted`);
+  if (st3.segs) ok(st3.on, `${tag}: teleprompter word highlighted`);
   if (st3.segs) {
     await page.click('.tr-body p:first-child .ts');
     await page.waitForTimeout(600);

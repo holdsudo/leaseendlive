@@ -179,8 +179,7 @@ def layout(path, title, desc, body, *, og_image="/img/og-default.jpg", og_alt=No
       <a href="/feeds/lease-end-minute.xml">Lease End Minute RSS</a><a href="/feeds/keys-or-keep.xml">Keys or Keep RSS</a>
     </div>
     <div>
-      <h4>Champion Auto Finance</h4>
-      <a href="{E(SITE['company']['quote_url'])}" data-track="cta_quote" rel="noopener">Get a lease buyout quote</a>
+      <h4>Contact</h4>
       <a href="{E(SITE['company']['phone_href'])}" data-track="cta_call">{E(SITE['company']['phone'])}</a>
       <a href="/ask/">Ask Joe a question</a><a href="/privacy/">Privacy</a>
     </div>
@@ -351,8 +350,11 @@ def page_episode(ep, eps):
     se = [e for e in eps if e["show"] == ep["show"]]
     i = se.index(ep)
     newer, older = (se[i - 1] if i > 0 else None), (se[i + 1] if i + 1 < len(se) else None)
-    tr = "".join(f'<p data-start="{g["start"]}" data-end="{g["end"]}"><button class="ts" data-seek="{g["start"]}">{hms(g["start"])}</button> {E(g["text"])}</p>'
-                 for g in ep["segments"])
+    def para(g):
+        words = g.get("words")
+        body = " ".join(f'<span class="w" data-s="{w[1]}">{E(w[0])}</span>' for w in words) if words else E(g["text"])
+        return f'<p data-start="{g["start"]}" data-end="{g["end"]}"><button class="ts" data-seek="{g["start"]}" aria-label="Play from {hms(g["start"])}">{hms(g["start"])}</button> {body}</p>'
+    tr = "".join(para(g) for g in ep["segments"])
     nav = ""
     if older: nav += f'<a class="ep-nav prev" href="{older["url"]}"><span class="meta">← Previous</span>{E(older["title"])}</a>'
     if newer: nav += f'<a class="ep-nav next" href="{newer["url"]}"><span class="meta">Next →</span>{E(newer["title"])}</a>'
@@ -362,7 +364,8 @@ def page_episode(ep, eps):
     embed_code = f'<iframe src="{embed_url}" width="100%" height="180" frameborder="0" loading="lazy" title="{E(ep["title"])} | {E(ep["show_title"])}"></iframe>'
     take = "".join(f"<li>{E(t)}</li>" for t in ep["takeaways"])
     chaps = "".join(f'<li><button class="ts" data-seek="{c["start"]}">{hms(c["start"])}</button> {E(c["title"])}</li>' for c in ep["chapters_resolved"])
-    guides = "".join(f'<li><a href="{E(u)}?utm_source=leaseendlive&amp;utm_medium=podcast_site&amp;utm_content={E(ep["slug"])}" rel="noopener" data-track="guide_link">{E(n)}</a></li>' for n, u in ep["links"])
+    # One contextual link to championautofinance.com per episode, no more (no link-farm footprint).
+    guides = "".join(f'<li><a href="{E(u)}" data-track="guide_link">{E(n)}</a></li>' for n, u in ep["links"][:1])
     og = f"/img/og/{ep['show']}-{ep['slug']}.jpg"
     if not os.path.exists(os.path.join(ROOT, "src", og.lstrip("/"))): og = f"/img/{ep['show']}-og.jpg"
     body = f"""
@@ -395,17 +398,18 @@ def page_episode(ep, eps):
       {f'<section class="chapters"><h2>Chapters</h2><ol class="chap-list">{chaps}</ol></section>' if chaps else ''}
       {('<section class="notes"><h2>Show notes</h2>' + ep['notes_html'] + '</section>') if ep.get('notes_html') else ''}
       <section class="transcript" id="transcript">
-        <div class="sec-head"><h2>Full transcript</h2><label class="follow"><input type="checkbox" checked data-follow> Follow along</label></div>
-        <div class="tr-body">{tr or '<p class="muted">Transcript coming soon.</p>'}</div>
+        <div class="sec-head"><h2>Full transcript</h2><div class="tr-tools"><label class="follow"><input type="checkbox" checked data-follow> Follow along</label><button class="chip" data-tr-expand aria-expanded="false">Expand</button></div></div>
+        <p class="tr-hint muted small">Press play and the transcript follows along word by word. Tap any word to jump there.</p>
+        <div class="tr-body" tabindex="0" aria-label="Episode transcript">{tr or '<p class="muted">Transcript coming soon.</p>'}</div>
       </section>
-      {f'<section class="guides"><h2>Read more from Champion Auto Finance</h2><ul class="ticks">{guides}</ul></section>' if guides else ''}
+      {f'<section class="guides"><h2>Related guide</h2><ul class="ticks">{guides}</ul></section>' if guides else ''}
       <p class="fine-sm">{E(SITE['disclosure'])} {E(SITE['ai_disclosure'])}</p>
       <nav class="ep-navs" aria-label="More from this show">{nav}</nav>
     </div>
     <aside class="ep-side">
       <div class="side-card"><h4>Follow {E(s['title'])}</h4>{platform_links(s, "episode_page")}</div>
       <div class="side-card cta-card"><h4>Thinking about buying out your lease?</h4><p class="muted small">Champion Auto Finance helps arrange financing for drivers buying the car they already lease, nationwide.</p>
-        <a class="btn btn-live btn-block" href="{E(SITE['company']['quote_url'])}&utm_campaign={E(ep['show'])}&utm_content={E(ep['slug'])}" data-track="cta_quote_episode" rel="noopener">Get a buyout quote</a>
+        <a class="btn btn-live btn-block" href="{E(SITE['company']['quote_url'])}&utm_campaign={E(ep['show'])}&utm_content={E(ep['slug'])}" data-track="cta_quote_episode" rel="nofollow noopener">Get a buyout quote</a>
         <p class="fine-sm">Not a lender. Approvals and terms are subject to lender underwriting.</p></div>
       <div class="side-card"><h4>Have a question?</h4><p class="muted small">Joe may answer it on the show.</p><a class="link" href="/ask/">Ask Joe →</a></div>
     </aside>
@@ -456,7 +460,7 @@ def page_about():
   <p>{E(SITE['ai_disclosure'])}</p>
   <h2>About Champion Auto Finance</h2>
   <p>{E(SITE['disclosure'])}</p>
-  <p><a class="btn btn-live" href="{E(SITE['company']['quote_url'])}" data-track="cta_quote_about" rel="noopener">Get a lease buyout quote</a></p>
+  <p><a class="btn btn-live" href="{E(SITE['company']['quote_url'])}" data-track="cta_quote_about" rel="nofollow noopener">Get a lease buyout quote</a></p>
 </section>"""
     ld = [{"@context": "https://schema.org", "@type": "ProfilePage", "url": BASE + "/about/", "mainEntity": person_ld()}, org_ld()]
     return layout("/about/", "About Joe, Managing Director at Champion Auto Finance", "Meet Joe, Managing Director at Champion Auto Finance and host of The Lease End Minute and Keys or Keep, podcasts about lease buyouts.",
@@ -547,7 +551,7 @@ def feed(s, eps):
     items = ""
     for e in se:
         tk = "".join(f"<li>{X(t)}</li>" for t in e["takeaways"])
-        gd = "".join(f'<li><a href="{X(u)}">{X(n)}</a></li>' for n, u in e["links"])
+        gd = "".join(f'<li><a href="{X(u)}">{X(n)}</a></li>' for n, u in e["links"][:1])
         notes = (f"<p>{X(e['summary'])}</p>" + (f"<p>Key takeaways:</p><ul>{tk}</ul>" if tk else "") + e.get("notes_html", "") +
                  (f"<p>Read more:</p><ul>{gd}</ul>" if gd else "") +
                  f'<p>Transcript: <a href="{BASE}{e["url"]}">{BASE}{e["url"]}</a></p>'

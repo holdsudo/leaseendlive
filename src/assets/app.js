@@ -115,19 +115,67 @@
       highlight(art, t);
     }
   }
-  function highlight(art, t) {
-    var ps = art.querySelectorAll('.tr-body p[data-start]'), on = null;
-    for (var i = 0; i < ps.length; i++) {
-      var p = ps[i], s = +p.dataset.start, e = (i + 1 < ps.length) ? +ps[i + 1].dataset.start : Infinity;
-      var hit = t >= s && t < e; p.classList.toggle('on', hit); if (hit) on = p;
+  // ---------- teleprompter: words before the playhead = past, the word being spoken = now, the rest = future
+  var tp = null;   // { art, box, words[], starts[], idx }
+  function teleprompter(art) {
+    if (!tp || tp.art !== art) {
+      var box = art.querySelector('.tr-body');
+      var words = Array.prototype.slice.call(art.querySelectorAll('.tr-body .w'));
+      tp = { art: art, box: box, words: words, starts: words.map(function (w) { return +w.dataset.s; }), idx: -2, lineTop: -1 };
     }
-    var follow = art.querySelector('[data-follow]');
-    if (on && !audio.paused && follow && follow.checked && on !== art._lastOn && Date.now() - userScrollAt > 4000) {
-      var r = on.getBoundingClientRect();
-      if (r.top < 90 || r.bottom > innerHeight - 110) on.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
-    art._lastOn = on;
+    return tp;
   }
+  function wordAt(starts, t) {   // last word whose start <= t
+    var lo = 0, hi = starts.length - 1, ans = -1;
+    while (lo <= hi) { var mid = (lo + hi) >> 1; if (starts[mid] <= t + 0.05) { ans = mid; lo = mid + 1; } else hi = mid - 1; }
+    return ans;
+  }
+  function highlight(art, t) {
+    var T = teleprompter(art);
+    if (!T.words.length) {   // no word timing: paragraph highlight only
+      var ps = art.querySelectorAll('.tr-body p[data-start]');
+      for (var i = 0; i < ps.length; i++) { var s0 = +ps[i].dataset.start, e0 = i + 1 < ps.length ? +ps[i + 1].dataset.start : Infinity; ps[i].classList.toggle('on', t >= s0 && t < e0); }
+      return;
+    }
+    T.box.classList.add('live');
+    var idx = wordAt(T.starts, t);
+    if (idx === T.idx) return;
+    var w = T.words;
+    if (T.idx >= -1 && idx > T.idx && idx - T.idx < 40) {        // moving forward: only touch what changed
+      if (T.idx >= 0) { w[T.idx].classList.remove('now'); w[T.idx].classList.add('past'); }
+      for (var k = Math.max(0, T.idx + 1); k < idx; k++) { w[k].classList.add('past'); w[k].classList.remove('now'); }
+    } else {                                                    // seek / jump: repaint everything
+      for (var j = 0; j < w.length; j++) { w[j].classList.toggle('past', j < idx); w[j].classList.remove('now'); }
+    }
+    if (idx >= 0) { w[idx].classList.add('now'); w[idx].classList.remove('past'); }
+    T.idx = idx;
+    // keep the line being spoken about a third of the way down the box, like a teleprompter
+    var follow = art.querySelector('[data-follow]');
+    if (idx >= 0 && follow && follow.checked && !T.box.classList.contains('open') && Date.now() - userScrollAt > 3500) {
+      var el = w[idx], top = Math.round(el.getBoundingClientRect().top - T.box.getBoundingClientRect().top + T.box.scrollTop);
+      if (top !== T.lineTop) {
+        T.lineTop = top;
+        T.box.scrollTo({ top: Math.max(0, top - T.box.clientHeight * 0.33), behavior: Math.abs(T.box.scrollTop - (top - T.box.clientHeight * 0.33)) > 600 ? 'auto' : 'smooth' });
+      }
+    }
+  }
+  function resetTeleprompter() {
+    var art = document.querySelector('[data-episode]');
+    if (!art) { tp = null; return; }
+    var T = teleprompter(art);
+    if (!(cur && art.getAttribute('data-episode') === cur.id)) {
+      if (T.box) T.box.classList.remove('live');
+      T.words.forEach(function (x) { x.classList.remove('past', 'now'); }); T.idx = -2;
+    }
+  }
+  // smooth word-by-word updates while playing (timeupdate alone only fires ~4x a second)
+  (function loop() {
+    if (cur && !audio.paused) {
+      var art = document.querySelector('[data-episode]');
+      if (art && art.getAttribute('data-episode') === cur.id) highlight(art, audio.currentTime);
+    }
+    requestAnimationFrame(loop);
+  })();
 
   // ---------- listening analytics
   function flushListen() {
@@ -212,9 +260,16 @@
       if (cur && cur.id === id) toggle(); else load(id, { play: true });
       return;
     }
-    var ts = e.target.closest('[data-seek]');
+    var ex = e.target.closest('[data-tr-expand]');
+    if (ex) {
+      var bx = ex.closest('.transcript').querySelector('.tr-body'), open = !bx.classList.contains('open');
+      bx.classList.toggle('open', open); ex.setAttribute('aria-expanded', open); ex.textContent = open ? 'Collapse' : 'Expand';
+      track('transcript_expand', { open: open });
+      return;
+    }
+    var ts = e.target.closest('[data-seek], .tr-body .w');
     if (ts) {
-      var art = ts.closest('[data-episode]'), t = +ts.getAttribute('data-seek');
+      var art = ts.closest('[data-episode]'), t = +(ts.getAttribute('data-seek') || ts.getAttribute('data-s'));
       track('transcript_jump', { seconds: t, episode_id: art.getAttribute('data-episode') });
       if (cur && cur.id === art.getAttribute('data-episode')) { seekTo(t, 'transcript'); if (audio.paused) audio.play(); }
       else load(art.getAttribute('data-episode'), { play: true, at: t });
@@ -285,6 +340,7 @@
     else if (e.key === 'l') seekTo(audio.currentTime + 30, 'keys');
   });
   addEventListener('wheel', function () { userScrollAt = Date.now(); }, { passive: true });
+  document.addEventListener('keydown', function (e) { if (e.target.classList && e.target.classList.contains('tr-body')) userScrollAt = Date.now(); });
   addEventListener('touchmove', function () { userScrollAt = Date.now(); }, { passive: true });
   addEventListener('resize', sync);
 
@@ -351,6 +407,7 @@
 
   // ---------- per-page setup
   function initPage() {
+    tp = null; resetTeleprompter();
     var art = document.querySelector('[data-episode]');
     var t = new URLSearchParams(location.search).get('t');
     if (art && t != null && !isNaN(+t)) load(art.getAttribute('data-episode'), { at: +t });

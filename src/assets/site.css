@@ -173,8 +173,23 @@ p{margin:0 0 1em}
 .cta-card h4{color:var(--text);text-transform:none;letter-spacing:0;font-family:var(--display);font-size:1.1rem}
 .fine-sm{font-size:.76rem;color:var(--dim);margin:10px 0 0}
 .notes{margin-bottom:28px}
-.transcript .tr-body p{position:relative;padding:12px 14px 12px 76px;margin:0;border-radius:12px;color:#c9d3e4;transition:background .25s,color .25s}
-.transcript .tr-body p.on{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--text)}
+/* Teleprompter transcript: three states.  spoken = white, speaking now = accent highlight, upcoming = muted */
+.tr-tools{display:flex;gap:12px;align-items:center}
+.tr-hint{margin:-8px 0 12px}
+.tr-body{--past:#eef2f9;--future:#7a879e;position:relative;max-height:min(62vh,560px);overflow-y:auto;overscroll-behavior:contain;
+  padding:8px 6px 30vh;border-radius:var(--r);background:rgba(0,0,0,.22);border:1px solid var(--line);
+  -webkit-mask-image:linear-gradient(transparent 0,#000 28px,#000 calc(100% - 60px),transparent);mask-image:linear-gradient(transparent 0,#000 28px,#000 calc(100% - 60px),transparent);
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+.tr-body.open{max-height:none;padding-bottom:16px;-webkit-mask-image:none;mask-image:none}
+.transcript .tr-body p{position:relative;padding:12px 14px 12px 76px;margin:0;border-radius:12px;color:#c9d3e4;font-size:clamp(1.05rem,1.6vw,1.22rem);line-height:1.75;transition:background .25s,color .25s}
+.transcript .tr-body p.on{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.tr-body .w{border-radius:5px;padding:1px 0;cursor:pointer;transition:color .18s,background-color .18s,box-shadow .18s}
+.tr-body .w:hover{text-decoration:underline;text-decoration-color:rgba(255,255,255,.35)}
+.tr-body.live p{color:var(--future)}
+.tr-body.live .w{color:var(--future)}
+.tr-body.live .w.past{color:var(--past)}
+.tr-body.live .w.now{color:#fff;background:var(--accent);box-shadow:0 0 0 3px var(--accent);font-weight:600}
+@media(prefers-reduced-motion:reduce){.tr-body .w{transition:none}}
 .ts{position:absolute;left:10px;top:13px;font:600 .78rem/1 var(--body);font-variant-numeric:tabular-nums;color:var(--accent);background:none;border:1px solid var(--line);border-radius:999px;padding:5px 8px;cursor:pointer}
 .ts:hover{background:var(--panel2)}
 .follow{display:inline-flex;gap:8px;align-items:center;font-size:.85rem;color:var(--muted);cursor:pointer}
