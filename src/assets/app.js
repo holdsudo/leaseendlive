@@ -395,6 +395,7 @@
       var u = new URL(url, location.href);
       if (u.hash && document.querySelector(u.hash)) document.querySelector(u.hash).scrollIntoView(); else scrollTo(0, 0);
       initPage();
+      document.dispatchEvent(new Event('lel:page'));
       if (window.lelPageView) window.lelPageView();
     }).catch(function () { location.href = url; });
   }

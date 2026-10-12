@@ -91,5 +91,7 @@
     "yandex": "",
     "facebook": ""
   },
-  "indexnow_key": "5f3c9a1e7b2d4c68a0e1f7b39d2c4e81"
+  "indexnow_key": "5f3c9a1e7b2d4c68a0e1f7b39d2c4e81",
+  "api": "https://leaseendlive-api.jmizrahi99.workers.dev",
+  "turnstile_sitekey": "0x4AAAAAAFU4mc-edKJNIYYk"
 }

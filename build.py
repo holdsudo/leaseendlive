@@ -97,7 +97,7 @@ def layout(path, title, desc, body, *, og_image="/img/og-default.jpg", og_alt=No
     feeds = "".join(f'<link rel="alternate" type="application/rss+xml" title="{E(s["title"])}" href="/feeds/{s["slug"]}.xml">'
                     for s in SITE["shows"] if not feed or s["slug"] == feed)
     ga = SITE.get("ga4_id") or ""
-    nav = [("/", "Home"), ("/lease-end-minute/", "Lease End Minute"), ("/keys-or-keep/", "Keys or Keep"), ("/about/", "About Joe")]
+    nav = [("/", "Home"), ("/lease-end-minute/", "Lease End Minute"), ("/keys-or-keep/", "Keys or Keep"), ("/community/", "Community"), ("/about/", "About Joe")]
     navhtml = "".join(f'<a href="{h}"{" aria-current=\"page\"" if (h == path or (h != "/" and path.startswith(h))) else ""}>{E(t)}</a>' for h, t in nav)
     return f"""<!doctype html>
 <html lang="en">
@@ -152,9 +152,10 @@ def layout(path, title, desc, body, *, og_image="/img/og-default.jpg", og_alt=No
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/site.css?v={ASSET_V}">
-<script>window.LEL={{ga:"{E(ga)}",ask:"{E(SITE['ask_endpoint'])}"}};</script>
+<script>window.LEL={{ga:"{E(ga)}",ask:"{E(SITE['ask_endpoint'])}",api:"{E(SITE.get('api',''))}",turnstile:"{E(SITE.get('turnstile_sitekey',''))}"}};</script>
 <script defer src="/assets/analytics.js?v={ASSET_V}"></script>
 <script defer src="/assets/app.js?v={ASSET_V}"></script>
+<script defer src="/assets/community.js?v={ASSET_V}"></script>
 {"".join(f'<script type="application/ld+json">{json.dumps(j, ensure_ascii=False)}</script>' for j in jsonld)}
 </head>
 <body>
@@ -385,6 +386,7 @@ def page_episode(ep, eps):
         <span class="meta"><time datetime="{ep['date']}">{nice_date(ep['_dt'])}</time> · {nice_len(ep['duration'])} · Hosted by <a href="/about/" rel="author">Joe</a>, Managing Director at Champion Auto Finance</span>
         <div class="ep-player">{play_btn(ep, "Play episode", "btn btn-play big")}{waveform(ep)}<span class="wave-time"><span class="t-cur">0:00</span> / {hms(ep['duration'])}</span></div>
         <div class="share">
+          <button class="chip like" data-like="{E(ep['show'])}/{E(ep['slug'])}" aria-pressed="false" aria-label="Like this episode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.3 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.3 2.4.7-1.2 2.2-2.4 4.3-2.4 3.7 0 5.8 3.8 4.3 7.2C19.5 16.4 12 21 12 21z"/></svg>Like <span></span></button>
           <button class="chip" data-share="copy">Copy link</button>
           <button class="chip" data-share="time">Share at current time</button>
           <a class="chip" data-share="x" href="https://twitter.com/intent/tweet?url={share}&text={quote(ep['title'])}" target="_blank" rel="noopener">Post on X</a>
@@ -405,6 +407,11 @@ def page_episode(ep, eps):
         <div class="sec-head"><h2>Full transcript</h2><div class="tr-tools"><label class="follow"><input type="checkbox" checked data-follow> Follow along</label><button class="chip" data-tr-expand aria-expanded="false">Expand</button></div></div>
         <p class="tr-hint muted small">Press play and the transcript follows along word by word. Tap any word to jump there.</p>
         <div class="tr-body" tabindex="0" aria-label="Episode transcript">{tr or '<p class="muted">Transcript coming soon.</p>'}</div>
+      </section>
+      <section class="discussion" id="comments" data-social-episode="{E(ep['show'])}/{E(ep['slug'])}">
+        <div class="sec-head"><h2>Comments <span class="c-count muted"></span></h2><a class="link small" href="/community/">Community board →</a></div>
+        <div class="c-new"></div>
+        <div class="c-list"><p class="muted">Loading comments…</p></div>
       </section>
       {f'<section class="guides"><h2>Related guide</h2><ul class="ticks">{guides}</ul></section>' if guides else ''}
       <p class="fine-sm">{E(SITE['disclosure'])} {E(SITE['ai_disclosure'])}</p>
@@ -505,6 +512,8 @@ def page_privacy():
   <p>Lease End Live is run by Champion Auto Finance.</p>
   <h2>Listening statistics</h2>
   <p>We use Google Analytics to understand how the site is used: which pages are viewed, which episodes are played, and roughly how long people listen. Episode audio is delivered through <a href="https://op3.dev" rel="noopener">OP3</a>, an open podcast statistics service that counts downloads without selling or sharing listener data. We do not use advertising trackers.</p>
+  <h2>Comments, likes and the community</h2>
+  <p>To comment or post you confirm an email address once. We store your display name, your email (used only to send sign-in links and never shown publicly), your posts and your votes. Episode likes don't need an account: your browser keeps a random ID so one device counts once. To stop abuse we keep a short-lived, scrambled version of your IP address that changes daily; we never store the IP itself. Bot protection is provided by Cloudflare Turnstile. You can delete your own posts at any time, and you can ask us to delete your account at info@championautofinance.com.</p>
   <h2>Your preferences</h2>
   <p>Your browser remembers where you stopped in each episode and your playback speed so you can pick up where you left off. That stays on your device.</p>
   <h2>Questions you send</h2>
@@ -535,6 +544,50 @@ function f(x){{x=Math.floor(x||0);return Math.floor(x/60)+':'+String(x%60).padSt
 p.onclick=function(){{a.paused?a.play():a.pause()}};a.onplay=function(){{i.setAttribute('d','M6 5h4v14H6zM14 5h4v14h-4z')}};a.onpause=function(){{i.setAttribute('d','M8 5v14l11-7z')}};
 a.ontimeupdate=function(){{if(a.duration){{s.value=a.currentTime/a.duration*1000;tm.textContent=f(a.currentTime)+' / '+f(a.duration)}}}};s.oninput=function(){{if(a.duration)a.currentTime=s.value/1000*a.duration}};</script>
 </body></html>"""
+
+
+def page_community():
+    body = """
+<section class="wrap section narrow-wide">
+  <span class="eyebrow">Lease End Live Community</span>
+  <h1>Ask the community</h1>
+  <p class="lead">Lease-end questions, buyout stories and second opinions from real drivers. Joe drops in too.</p>
+  <p class="meta"><span data-members></span> · <a href="/community/rules/">Community rules</a></p>
+  <div id="community-app" class="community"><p class="muted">Loading…</p></div>
+  <noscript><p>The community board needs JavaScript.</p></noscript>
+</section>"""
+    return layout("/community/", "Lease Buyout Community: Questions and Answers", "Ask lease-end and lease buyout questions, share your experience, and get answers from other drivers and Joe from Champion Auto Finance.",
+                  body, crumbs=[("Community", "/community/")], jsonld=[{"@context": "https://schema.org", "@type": "WebPage",
+                  "name": "Lease End Live Community", "url": BASE + "/community/"}])
+
+
+def page_rules():
+    body = f"""
+<section class="wrap section narrow prose">
+  <span class="eyebrow">Community</span>
+  <h1>Community rules</h1>
+  <p class="lead">Keep it helpful, honest and private.</p>
+  <ol>
+    <li><b>Protect your privacy.</b> Never post account numbers, Social Security numbers, VINs, addresses, phone numbers or email addresses. Posts that look like they contain these are held automatically.</li>
+    <li><b>Be respectful.</b> No harassment, hate, threats or personal attacks.</li>
+    <li><b>No spam or selling.</b> No ads, referral links or solicitations. Posts with links are reviewed before they appear.</li>
+    <li><b>Be honest.</b> Share real experiences. Don't impersonate anyone, including Champion Auto Finance staff.</li>
+    <li><b>It's not professional advice.</b> Posts are other people's opinions and experiences, not legal, tax or financial advice. Your contract and your state's rules decide what applies to you.</li>
+  </ol>
+  <h2>How moderation works</h2>
+  <p>You confirm your email once before your first post; your email is never shown. Posts go live right away unless they contain links, contact details, long numbers or flagged language, in which case a moderator reviews them first. Anyone can report a post; posts reported by several readers are hidden until reviewed. We may remove posts or block accounts that break these rules.</p>
+  <h2>About us</h2>
+  <p>The community is run by Champion Auto Finance. Posts by Joe or the Champion team are marked <b>Host</b>. {E(SITE['disclosure'])}</p>
+  <p><a class="btn btn-live" href="/community/">Go to the community</a></p>
+</section>"""
+    return layout("/community/rules/", "Community Rules", "The rules for the Lease End Live community: privacy, respect, no spam, honesty.", body,
+                  crumbs=[("Community", "/community/"), ("Rules", "/community/rules/")])
+
+
+def page_verify():
+    body = """<section class="wrap section narrow center"><span class="eyebrow">Lease End Live</span><h1>Confirming your email</h1>
+<p class="lead" id="verify-app">One moment…</p><noscript><p>Please enable JavaScript to finish signing in.</p></noscript></section>"""
+    return layout("/verify/", "Confirm your email", "Confirming your email for the Lease End Live community.", body, robots="noindex,nofollow")
 
 
 def page_404():
@@ -635,6 +688,7 @@ def main():
         write(f"/{s['slug']}/", page_show(s, eps))
         write(f"/feeds/{s['slug']}.xml", feed(s, eps))
     write("/about/", page_about()); write("/ask/", page_ask()); write("/privacy/", page_privacy())
+    write("/community/", page_community()); write("/community/rules/", page_rules()); write("/verify/", page_verify())
     for e in eps:
         write(f"/embed{e['url']}", page_embed(e))
         write(f"/oembed/{e['show']}/{e['slug']}.json", json.dumps({
@@ -667,7 +721,7 @@ def main():
     rows = [("/", newest, "/img/og-default.jpg", "Lease End Live")]
     rows += [(f"/{s['slug']}/", last(s["slug"]), f"/img/{s['slug']}-cover-1400.jpg", s["title"]) for s in SITE["shows"]]
     rows += [(e["url"], e.get("modified", e["date"]), e["cover"], e["title"]) for e in eps]
-    rows += [("/about/", newest, None, None), ("/ask/", newest, None, None)]
+    rows += [("/about/", newest, None, None), ("/ask/", newest, None, None), ("/community/", newest, None, None), ("/community/rules/", newest, None, None)]
     write("/sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'
           + "".join(f"<url><loc>{BASE}{u}</loc><lastmod>{d[:10]}</lastmod>"
                     + (f"<image:image><image:loc>{BASE}{img}</image:loc><image:title>{X(t)}</image:title></image:image>" if img else "") + "</url>"

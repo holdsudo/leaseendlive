@@ -1,0 +1,20 @@
+name = "leaseendlive-api"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "leaseendlive"
+database_id = "014297f0-f569-4a53-a496-5efb2cb10ee5"
+
+[vars]
+ALLOWED_ORIGINS = "https://leaseendlive.com,https://www.leaseendlive.com,http://localhost:8765"
+SITE_URL = "https://leaseendlive.com"
+API_URL = "https://leaseendlive-api.jmizrahi99.workers.dev"
+MAIL_FROM = "Lease End Live <hello@leaseendlive.com>"
+MOD_EMAIL = "info@championautofinance.com"
+HOST_EMAILS = "info@championautofinance.com"
+
+[observability]
+enabled = true
