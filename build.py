@@ -510,9 +510,9 @@ def page_privacy():
     body = f"""
 <section class="wrap section narrow prose">
   <h1>Privacy</h1>
-  <p>Lease End Live is run by Champion Auto Finance. This page explains what this site collects and why. Last updated: October 12, 2026.</p>
+  <p>Lease End Live is run by Champion Auto Finance. This page explains what this site collects and why. Last updated: October 13, 2026.</p>
   <h2>Listening statistics</h2>
-  <p>Episode audio is delivered through <a href="https://op3.dev" rel="noopener">OP3</a>, an open podcast statistics service that counts downloads without selling or sharing listener data. We may add Google Analytics to count page views and how much of each episode is played; if we do, this page will say so before it is turned on. We do not use advertising trackers on this site.</p>
+  <p>Episode audio is delivered through <a href="https://op3.dev" rel="noopener">OP3</a>, an open podcast statistics service that counts downloads without selling or sharing listener data. We also use Google Analytics to count page views and how much of each episode is played on this site (plays, pauses, listening time, shares and clicks to podcast apps). Google Analytics sets cookies and receives your IP address and basic browser details; we do not send it your name, email or anything you type into a form. We do not use advertising trackers on this site.</p>
   <h2>Hosting</h2>
   <p>The site is hosted on GitHub Pages, and the comments and community run on Cloudflare. Like any web host, they process your IP address and basic browser details to deliver pages and protect against abuse.</p>
   <h2>Comments, likes and the community</h2>
