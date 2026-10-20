@@ -1,0 +1,8 @@
+# Cloudflare deploy config for the static site (the API worker has its own in api/wrangler.toml).
+# Deploy: python3 build.py && npx wrangler deploy
+name = "leaseendlive"
+compatibility_date = "2026-10-20"
+
+[assets]
+directory = "./dist"
+not_found_handling = "404-page"

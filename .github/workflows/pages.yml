@@ -7,8 +7,6 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  pages: write
-  id-token: write
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -21,22 +19,15 @@ jobs:
         with:
           python-version: "3.12"
       - run: python3 build.py
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
         with:
-          path: dist
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 5d6b005a61bf789cd287d31cc50d0c80
+          command: deploy
   indexnow:
     # Tell Bing, Yandex, Seznam, Naver (IndexNow) about every URL after each deploy.
-    needs: deploy
+    needs: build
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
@@ -48,7 +39,7 @@ jobs:
           import json, re, time, urllib.request
           site = json.load(open("content/site.json")); key = site.get("indexnow_key"); base = site["url"].rstrip("/")
           if not key: raise SystemExit("no key")
-          time.sleep(60)  # give Pages a minute to serve the new build
+          time.sleep(60)  # give Cloudflare a minute to serve the new build
           xml = open("dist/sitemap.xml").read()
           urls = re.findall(r"<loc>([^<]+)</loc>", xml)
           body = json.dumps({"host": base.split("://")[1], "key": key, "keyLocation": f"{base}/{key}.txt", "urlList": urls}).encode()
