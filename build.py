@@ -97,7 +97,7 @@ def layout(path, title, desc, body, *, og_image="/img/og-default.jpg", og_alt=No
     feeds = "".join(f'<link rel="alternate" type="application/rss+xml" title="{E(s["title"])}" href="/feeds/{s["slug"]}.xml">'
                     for s in SITE["shows"] if not feed or s["slug"] == feed)
     ga = SITE.get("ga4_id") or ""
-    nav = [("/", "Home"), ("/lease-end-minute/", "Lease End Minute"), ("/keys-or-keep/", "Keys or Keep"), ("/community/", "Community"), ("/about/", "About Joe")]
+    nav = [("/", "Home"), ("/lease-end-minute/", "Lease End Minute"), ("/keys-or-keep/", "Keys or Keep"), ("/articles/", "Articles"), ("/community/", "Community"), ("/about/", "About Joe")]
     navhtml = "".join(f'<a href="{h}"{" aria-current=\"page\"" if (h == path or (h != "/" and path.startswith(h))) else ""}>{E(t)}</a>' for h, t in nav)
     return f"""<!doctype html>
 <html lang="en">
@@ -459,6 +459,58 @@ def page_episode(ep, eps):
                   extra_head=extra, keywords=ep["keywords"])
 
 
+def load_articles():
+    out = []
+    for f in glob.glob(os.path.join(ROOT, "content/articles/*.json")):
+        a = json.load(open(f))
+        a["_dt"] = datetime.fromisoformat(a["date"])
+        if a["_dt"] > NOW and not PREVIEW:
+            continue
+        a["url"] = f"/articles/{a['slug']}/"
+        out.append(a)
+    out.sort(key=lambda a: a["_dt"], reverse=True)
+    return out
+
+
+def page_articles(arts):
+    cards = "".join(f'<li><a href="{a["url"]}"><strong>{E(a["title"])}</strong></a><br><span class="muted small">{nice_date(a["_dt"])}</span><br>{E(a["lead"])}</li>' for a in arts)
+    body = f"""
+<section class="wrap section narrow">
+  <span class="eyebrow">Articles</span><h1>Lease-end articles</h1>
+  <p class="lead">Written explainers on the rules behind buying out a car lease, with the official sources linked.</p>
+  <ul class="ticks">{cards}</ul>
+  <p class="muted small">{E(SITE['disclosure'])}</p>
+</section>"""
+    ld = [{"@context": "https://schema.org", "@type": "CollectionPage", "url": BASE + "/articles/", "name": "Lease-end articles",
+           "hasPart": [{"@type": "Article", "headline": a["title"], "url": BASE + a["url"]} for a in arts]}]
+    return layout("/articles/", "Lease-end articles", "Written explainers on the rules behind buying out a car lease, from Champion Auto Finance, with official sources linked.",
+                  body, jsonld=ld, crumbs=[("Articles", "/articles/")])
+
+
+def page_article(a, arts):
+    faq = "".join(f"<details><summary>{E(q)}</summary><p>{E(ans)}</p></details>" for q, ans in a.get("faq", []))
+    src = "".join(f'<li><a href="{E(u)}" rel="noopener">{E(t)}</a></li>' for t, u in a.get("sources", []))
+    rel = "".join(f'<li><a href="/articles/{r["slug"]}/">{E(r["title"])}</a></li>' for r in arts if r["slug"] in a.get("related", []))
+    body = f"""
+<article class="wrap section narrow prose">
+  <span class="eyebrow">Article</span><h1>{E(a['title'])}</h1>
+  <p class="lead">{E(a['lead'])}</p>
+  <p class="meta"><time datetime="{a['date']}">{nice_date(a['_dt'])}</time> · By Champion Auto Finance</p>
+  {a['body']}
+  <h2>Common questions</h2>
+  <div class="faq">{faq}</div>
+  <section class="guides"><h2>Sources</h2><ul>{src}</ul></section>
+  {('<section class="guides"><h2>Keep reading</h2><ul>' + rel + '</ul></section>') if rel else ''}
+  <section class="guides"><h2>Champion Auto Finance</h2><p>Thinking about buying out your lease? Learn more at <a href="https://championautofinance.com/" data-track="cta_company_article">championautofinance.com</a>.</p></section>
+  <p class="muted small">{E(SITE['disclosure'])}</p>
+</article>"""
+    ld = [{"@context": "https://schema.org", "@type": "Article", "headline": a["title"], "description": a["description"], "datePublished": a["date"], "dateModified": a["date"],
+           "mainEntityOfPage": BASE + a["url"], "author": {"@type": "Organization", "name": "Champion Auto Finance", "url": "https://championautofinance.com/"},
+           "publisher": org_ld(), "isAccessibleForFree": True},
+          {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": ans}} for q, ans in a.get("faq", [])]}]
+    return layout(a["url"], a["title"], a["description"], body, jsonld=ld, kind="article", crumbs=[("Articles", "/articles/"), (a["title"], a["url"])])
+
+
 def page_about():
     body = f"""
 <section class="wrap section narrow">
@@ -735,6 +787,9 @@ def main():
     for s in SITE["shows"]:
         write(f"/{s['slug']}/", page_show(s, eps))
         write(f"/feeds/{s['slug']}.xml", feed(s, eps))
+    arts = load_articles()
+    write("/articles/", page_articles(arts))
+    for a in arts: write(a["url"], page_article(a, arts))
     write("/about/", page_about()); write("/ask/", page_ask()); write("/privacy/", page_privacy()); write("/terms/", page_terms())
     write("/community/", page_community()); write("/community/rules/", page_rules()); write("/verify/", page_verify()); write("/admin/", page_admin())
     for e in eps:
@@ -755,6 +810,7 @@ def main():
             SITE["disclosure"], "", "## Shows"]
     llms += [f"- [{s['title']}]({BASE}/{s['slug']}/): {s['subtitle']} RSS: {BASE}/feeds/{s['slug']}.xml" for s in SITE["shows"]]
     llms += ["", "## Episodes (each page has a full transcript)"] + [f"- [{e['show_title']}: {e['title']}]({BASE}{e['url']}): {e['summary']}" for e in eps]
+    llms += ["", "## Articles"] + [f"- [{a['title']}]({BASE}{a['url']}): {a['description']}" for a in arts]
     llms += ["", "## About", f"- [Joe, Managing Director at Champion Auto Finance]({BASE}/about/)", "- [Champion Auto Finance](https://championautofinance.com/)"]
     write("/llms.txt", "\n".join(llms) + "\n")
     if SITE.get("indexnow_key"): write(f"/{SITE['indexnow_key']}.txt", SITE["indexnow_key"])
@@ -769,6 +825,7 @@ def main():
     rows = [("/", newest, "/img/og-default.jpg", "Lease End Live")]
     rows += [(f"/{s['slug']}/", last(s["slug"]), f"/img/{s['slug']}-cover-1400.jpg", s["title"]) for s in SITE["shows"]]
     rows += [(e["url"], e.get("modified", e["date"]), e["cover"], e["title"]) for e in eps]
+    rows += [("/articles/", arts[0]["date"] if arts else newest, None, None)] + [(a["url"], a["date"], None, None) for a in arts]
     rows += [("/about/", newest, None, None), ("/ask/", newest, None, None), ("/community/", newest, None, None), ("/community/rules/", newest, None, None)]
     write("/sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'
           + "".join(f"<url><loc>{BASE}{u}</loc><lastmod>{d[:10]}</lastmod>"
