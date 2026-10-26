@@ -54,6 +54,21 @@ def load_episodes():
     return eps
 
 
+def load_blog():
+    posts = []
+    for f in glob.glob(os.path.join(ROOT, "content/blog/*.json")):
+        p = json.load(open(f))
+        p["_dt"] = datetime.fromisoformat(p["date"])
+        if p["_dt"] > NOW and not PREVIEW:
+            continue
+        p["url"] = f"/blog/{p['slug']}/"
+        p["words"] = len(re.sub(r"<[^>]+>", " ", p["body"]).split())
+        p["read_min"] = max(1, round(p["words"] / 220))
+        posts.append(p)
+    posts.sort(key=lambda p: p["_dt"], reverse=True)
+    return posts
+
+
 def hms(sec):
     sec = int(round(sec)); h, r = divmod(sec, 3600); m, s = divmod(r, 60)
     return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
@@ -97,7 +112,7 @@ def layout(path, title, desc, body, *, og_image="/img/og-default.jpg", og_alt=No
     feeds = "".join(f'<link rel="alternate" type="application/rss+xml" title="{E(s["title"])}" href="/feeds/{s["slug"]}.xml">'
                     for s in SITE["shows"] if not feed or s["slug"] == feed)
     ga = SITE.get("ga4_id") or ""
-    nav = [("/", "Home"), ("/lease-end-minute/", "Lease End Minute"), ("/keys-or-keep/", "Keys or Keep"), ("/community/", "Community"), ("/about/", "About Joe")]
+    nav = [("/", "Home"), ("/lease-end-minute/", "Lease End Minute"), ("/keys-or-keep/", "Keys or Keep"), ("/blog/", "Blog"), ("/community/", "Community"), ("/about/", "About Joe")]
     navhtml = "".join(f'<a href="{h}"{" aria-current=\"page\"" if (h == path or (h != "/" and path.startswith(h))) else ""}>{E(t)}</a>' for h, t in nav)
     return f"""<!doctype html>
 <html lang="en">
@@ -181,6 +196,7 @@ def layout(path, title, desc, body, *, og_image="/img/og-default.jpg", og_alt=No
     <div>
       <h4>Listen</h4>
       <a href="/lease-end-minute/">The Lease End Minute</a><a href="/keys-or-keep/">Keys or Keep</a>
+      <a href="/blog/">Blog</a>
       <a href="/feeds/lease-end-minute.xml">Lease End Minute RSS</a><a href="/feeds/keys-or-keep.xml">Keys or Keep RSS</a>
     </div>
     <div>
@@ -459,6 +475,57 @@ def page_episode(ep, eps):
                   extra_head=extra, keywords=ep["keywords"])
 
 
+def page_blog_index(posts):
+    rows = "".join(f"""<li class="ep-row"><div class="ep-row-main"><span class="eyebrow">{nice_date(p['_dt'])} · {p['read_min']} min read</span>
+  <a class="ep-row-title" href="{p['url']}">{E(p['title'])}</a><span class="meta">{E(p['description'])}</span></div></li>""" for p in posts)
+    body = f"""
+<section class="wrap section narrow prose">
+  <span class="eyebrow">The Lease End Live blog</span>
+  <h1>Lease buyout guides, in plain English</h1>
+  <p class="lead">Written guides to the numbers, paperwork and decisions at the end of a car lease, from Joe at Champion Auto Finance.</p>
+</section>
+<section class="wrap section narrow"><div class="sec-head"><h2>All posts</h2><span class="meta">{len(posts)} total</span></div><ul class="ep-list">{rows}</ul></section>"""
+    ld = [{"@context": "https://schema.org", "@type": "Blog", "@id": BASE + "/blog/#blog", "name": "Lease End Live Blog", "url": BASE + "/blog/",
+           "inLanguage": "en-US", "publisher": {"@id": "https://championautofinance.com/#organization"},
+           "blogPost": [{"@type": "BlogPosting", "headline": p["title"], "url": BASE + p["url"], "datePublished": p["date"]} for p in posts]}]
+    return layout("/blog/", "Lease Buyout Blog: Guides to Ending Your Car Lease", "Plain-English guides to lease payoff quotes, residual value, fees, wear and tear, and buying out your lease, from Joe at Champion Auto Finance.",
+                  body, crumbs=[("Blog", "/blog/")], jsonld=ld, extra_head='<link rel="alternate" type="application/rss+xml" title="Lease End Live Blog" href="/blog/feed.xml">')
+
+
+def page_blog_post(p, posts):
+    i = posts.index(p)
+    others = [q for q in posts if q is not p][:3]
+    more = "".join(f'<li><a href="{q["url"]}">{E(q["title"])}</a></li>' for q in others)
+    body = f"""
+<article class="wrap section narrow prose">
+  <p class="crumbs"><a href="/">Home</a> / <a href="/blog/">Blog</a></p>
+  <span class="eyebrow">{nice_date(p['_dt'])} · {p['read_min']} min read</span>
+  <h1>{E(p['title'])}</h1>
+  <p class="lead">{E(p['description'])}</p>
+  <p class="meta">By <a href="/about/">Joe</a>, Managing Director, Champion Auto Finance</p>
+  {p['body']}
+  <section class="guides"><h2>Champion Auto Finance</h2><p>Thinking about buying out your lease? Learn more and get started at <a href="https://championautofinance.com/" data-track="cta_company_blog">championautofinance.com</a>, or <a href="/ask/">ask Joe a question</a>.</p></section>
+  <h2>More from the blog</h2>
+  <ul class="ticks">{more}</ul>
+  <p class="fine-sm">{E(SITE['disclosure'])}</p>
+</article>"""
+    ld = [{"@context": "https://schema.org", "@type": "BlogPosting", "@id": BASE + p["url"] + "#post", "headline": p["title"],
+           "description": p["description"], "datePublished": p["date"], "dateModified": p.get("modified", p["date"]),
+           "mainEntityOfPage": BASE + p["url"], "inLanguage": "en-US", "wordCount": p["words"], "keywords": ", ".join(p["keywords"]),
+           "image": BASE + "/img/og-default.jpg",
+           "author": person_ld(), "publisher": {"@id": "https://championautofinance.com/#organization", "@type": "Organization", "name": "Champion Auto Finance"}}]
+    return layout(p["url"], p["title"], p["description"], body, kind="article", jsonld=ld, keywords=p["keywords"],
+                  crumbs=[("Blog", "/blog/"), (p["title"], p["url"])])
+
+
+def blog_feed(posts):
+    items = "".join(f"""<item><title>{X(p['title'])}</title><link>{BASE}{p['url']}</link><guid isPermaLink="true">{BASE}{p['url']}</guid>
+<pubDate>{format_datetime(p['_dt'])}</pubDate><description>{X(p['description'])}</description></item>""" for p in posts)
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Lease End Live Blog</title><link>{BASE}/blog/</link><description>Plain-English lease buyout guides from Joe at Champion Auto Finance.</description><language>en-us</language>{items}</channel></rss>
+"""
+
+
 def page_about():
     body = f"""
 <section class="wrap section narrow">
@@ -726,6 +793,10 @@ def main():
     if os.path.isdir(DIST): shutil.rmtree(DIST)
     shutil.copytree(os.path.join(ROOT, "src"), DIST)
     eps = load_episodes()
+    posts = load_blog()
+    write("/blog/", page_blog_index(posts)); write("/blog/feed.xml", blog_feed(posts))
+    for p in posts:
+        write(p["url"], page_blog_post(p, posts))
     for e in eps:
         os.makedirs(os.path.join(DIST, os.path.dirname(e["audio"])), exist_ok=True)
         shutil.copyfile(os.path.join(ROOT, e["audio"]), os.path.join(DIST, e["audio"]))
@@ -755,9 +826,21 @@ def main():
             SITE["disclosure"], "", "## Shows"]
     llms += [f"- [{s['title']}]({BASE}/{s['slug']}/): {s['subtitle']} RSS: {BASE}/feeds/{s['slug']}.xml" for s in SITE["shows"]]
     llms += ["", "## Episodes (each page has a full transcript)"] + [f"- [{e['show_title']}: {e['title']}]({BASE}{e['url']}): {e['summary']}" for e in eps]
+    llms += ["", "## Blog"] + [f"- [{p['title']}]({BASE}{p['url']}): {p['description']}" for p in posts]
     llms += ["", "## About", f"- [Joe, Managing Director at Champion Auto Finance]({BASE}/about/)", "- [Champion Auto Finance](https://championautofinance.com/)"]
     write("/llms.txt", "\n".join(llms) + "\n")
     if SITE.get("indexnow_key"): write(f"/{SITE['indexnow_key']}.txt", SITE["indexnow_key"])
+    # blog posts may link to episodes/posts that are still future-dated; unwrap any internal link whose page isn't built yet
+    # (it re-links itself on the daily build once the target is live)
+    for p in posts:
+        fp = os.path.join(DIST, p["url"].lstrip("/"), "index.html")
+        t = open(fp, encoding="utf-8").read()
+        def live(m):
+            h = m.group(1).split("#")[0].split("?")[0]
+            ok = os.path.exists(os.path.join(DIST, h.lstrip("/"), "index.html")) or os.path.exists(os.path.join(DIST, h.lstrip("/")))
+            return m.group(0) if ok else m.group(2)
+        t = re.sub(r'<a href="(/[^"]*)">([^<]*)</a>', live, t)
+        open(fp, "w", encoding="utf-8").write(t)
     write("/404.html", page_404())
     # client-side episode index for the player (no peaks/segments: those are read from the page)
     idx = {f"{e['show']}/{e['slug']}": {"t": e["title"], "s": e["show_title"], "u": e["url"], "a": "/" + e["audio"],
@@ -769,6 +852,7 @@ def main():
     rows = [("/", newest, "/img/og-default.jpg", "Lease End Live")]
     rows += [(f"/{s['slug']}/", last(s["slug"]), f"/img/{s['slug']}-cover-1400.jpg", s["title"]) for s in SITE["shows"]]
     rows += [(e["url"], e.get("modified", e["date"]), e["cover"], e["title"]) for e in eps]
+    rows += [("/blog/", posts[0]["date"] if posts else newest, None, None)] + [(p["url"], p.get("modified", p["date"]), None, None) for p in posts]
     rows += [("/about/", newest, None, None), ("/ask/", newest, None, None), ("/community/", newest, None, None), ("/community/rules/", newest, None, None)]
     write("/sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'
           + "".join(f"<url><loc>{BASE}{u}</loc><lastmod>{d[:10]}</lastmod>"
@@ -777,7 +861,7 @@ def main():
     write("/robots.txt", f"User-agent: *\nAllow: /\n\nSitemap: {BASE}/sitemap.xml\n")
     write("/CNAME", BASE.split("://")[1] + "\n")
     write("/.nojekyll", "")
-    print(f"built {len(eps)} episodes{' (preview)' if PREVIEW else ''} -> {DIST}")
+    print(f"built {len(posts)} blog posts, {len(eps)} episodes{' (preview)' if PREVIEW else ''} -> {DIST}")
 
 
 if __name__ == "__main__":
