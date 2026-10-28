@@ -1,4 +1,5 @@
-// End-to-end check of the built site against a local server (python3 -m http.server 8765 -d dist).
+// End-to-end check of the built site against a local server: python3 tools/serve.py 8765
+// (needs HTTP Range support for audio seeking; plain `python3 -m http.server` breaks the waveform test).
 //   node tools/test.mjs [baseUrl]
 // Uses the system Chrome through playwright-core; autoplay is allowed so playback can be tested.
 import { createRequire } from 'module';
@@ -16,6 +17,13 @@ const browser = await chromium.launch({ executablePath: '/Applications/Google Ch
 
 async function run(viewport, tag) {
   const ctx = await browser.newContext({ viewport });
+  // GA4 is on (site.json ga4_id), so analytics.js sends events to gtag, not the console. Stub the real
+  // tag so test runs never reach Google, and shim gtag to log each event the way the test expects.
+  await ctx.route(/googletagmanager\.com|google-analytics\.com/, r => r.fulfill({ contentType: 'application/javascript', body: '' }));
+  // The API only allows localhost:8765 as a dev origin; echo whatever origin the test runs on so any free port works.
+  await ctx.route(/leaseendlive-api\./, async r => { const res = await r.fetch();
+    await r.fulfill({ response: res, headers: { ...res.headers(), 'access-control-allow-origin': new URL(BASE).origin } }); });
+  await ctx.addInitScript(() => { window.gtag = function (k, n) { if (k === 'event') console.log('[lel] ' + n); }; });
   const page = await ctx.newPage();
   const errors = [], events = [];
   page.on('pageerror', e => errors.push(e.message));
